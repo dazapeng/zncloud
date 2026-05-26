@@ -1,0 +1,45 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: zncloud-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:public}
+        group: DEFAULT_GROUP
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+# JWT 配置（与 user-service 保持一致）
+jwt:
+  secret: ${JWT_SECRET:ZnCloudSecretKey2024ForJwtTokenGenerationMustBe256BitsLong}
+  expiration: 86400000
+  # 鉴权白名单路径
+  skip-paths:
+    - /api/v1/auth/**
+    - /api/v1/devices/register
+    - /api/v1/devices/heartbeat
+
+# Spring Boot Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

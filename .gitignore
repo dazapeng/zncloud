@@ -1,0 +1,40 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+*.log
+*.iml
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Node
+node_modules/
+dist/
+build/
+.npm/
+.yarn/
+
+# Visual Studio
+.vs/
+*.sln.ide/
+bin/
+obj/
+*.user
+*.suo
+
+# Environment
+.env
+.env.local
+application-local.yml
+application-local.properties
+
+# Docker
+docker-data/
+
+# OS
+.DS_Store
+Thumbs.db

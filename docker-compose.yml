@@ -1,0 +1,171 @@
+version: '3.8'
+
+networks:
+  zncloud-net:
+    driver: bridge
+
+services:
+  # ==================== 基础设施 ====================
+  mysql:
+    image: mysql:8.0
+    container_name: zncloud-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: zncloud_db
+      MYSQL_USER: zncloud
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-zncloud123}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zncloud-net
+
+  redis:
+    image: redis:7
+    container_name: zncloud-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zncloud-net
+
+  nacos:
+    image: nacos/nacos-server:2.3.2
+    container_name: zncloud-nacos
+    restart: unless-stopped
+    ports:
+      - "8848:8848"
+    environment:
+      MODE: standalone
+      PREFER_HOST_MODE: hostname
+      NACOS_AUTH_ENABLE: "false"
+      JVM_XMS: 256m
+      JVM_XMX: 512m
+    volumes:
+      - nacos-data:/home/nacos/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - zncloud-net
+
+  # ==================== 微服务 ====================
+  user-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.java
+      args:
+        JAR_FILE: zncloud-user-service/target/*.jar
+        SERVICE_NAME: zncloud-user-service
+    container_name: zncloud-user-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/zncloud_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      NACOS_ADDR: nacos:8848
+      JWT_SECRET: ${JWT_SECRET:-ZnCloudSecretKey2024ForJwtTokenGenerationMustBe256BitsLong}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+    networks:
+      - zncloud-net
+
+  device-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.java
+      args:
+        JAR_FILE: zncloud-device-service/target/*.jar
+        SERVICE_NAME: zncloud-device-service
+    container_name: zncloud-device-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/zncloud_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      NACOS_ADDR: nacos:8848
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_started
+    networks:
+      - zncloud-net
+
+  gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.java
+      args:
+        JAR_FILE: zncloud-gateway/target/*.jar
+        SERVICE_NAME: zncloud-gateway
+    container_name: zncloud-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_PORT: 8080
+      NACOS_ADDR: nacos:8848
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-ZnCloudSecretKey2024ForJwtTokenGenerationMustBe256BitsLong}
+    depends_on:
+      nacos:
+        condition: service_started
+      user-service:
+        condition: service_started
+      device-service:
+        condition: service_started
+    networks:
+      - zncloud-net
+
+volumes:
+  mysql-data:
+    driver: local
+  redis-data:
+    driver: local
+  nacos-data:
+    driver: local
