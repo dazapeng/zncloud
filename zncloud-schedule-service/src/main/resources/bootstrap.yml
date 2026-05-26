@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: zncloud-schedule-service
+  cloud:
+    nacos:
+      config:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+        file-extension: yaml
+        namespace: ${NACOS_NAMESPACE:public}
+        group: DEFAULT_GROUP
+        refresh-enabled: true
+      discovery:
+        server-addr: ${NACOS_ADDR:localhost:8848}
+        namespace: ${NACOS_NAMESPACE:public}
+        group: DEFAULT_GROUP
