@@ -37,6 +37,17 @@ jwt:
     - /api/v1/devices/register
     - /api/v1/devices/heartbeat
 
+# AK/SK 认证配置
+aks:
+  auth:
+    # AK/SK 服务地址（user-service 内部地址）
+    service-url: http://zncloud-user-service:8081
+    # AK/SK 白名单路径（不需要 AK/SK 认证的路径）
+    skip-paths:
+      - /api/v1/auth/**
+      - /api/v1/devices/register
+      - /api/v1/devices/heartbeat
+
 # Spring Boot Actuator
 management:
   endpoints:

@@ -51,6 +51,68 @@ CREATE TABLE IF NOT EXISTS `user_login_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户登录日志表';
 
 -- ============================================================
+-- AK/SK 密钥管理表
+-- ============================================================
+
+-- 密钥对表
+CREATE TABLE IF NOT EXISTS `access_keys` (
+    `id`            BIGINT          NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `key_id`        VARCHAR(64)     NOT NULL COMMENT 'AccessKey ID',
+    `key_secret`    VARCHAR(255)    NOT NULL COMMENT 'AccessKey Secret（加密存储）',
+    `name`          VARCHAR(100)    NOT NULL COMMENT '密钥名称/描述',
+    `status`        VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE' COMMENT '状态: ACTIVE/DISABLED',
+    `permissions`   VARCHAR(500)    DEFAULT NULL COMMENT '权限列表（逗号分隔）',
+    `created_by`    BIGINT          DEFAULT NULL COMMENT '创建人用户ID',
+    `created_at`    DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `expired_at`    DATETIME        DEFAULT NULL COMMENT '过期时间',
+    `updated_at`    DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_key_id` (`key_id`),
+    INDEX `idx_status` (`status`),
+    INDEX `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AK/SK 密钥对表';
+
+-- ============================================================
+-- Webhook 订阅表
+-- ============================================================
+
+-- Webhook 订阅表
+CREATE TABLE IF NOT EXISTS `webhooks` (
+    `id`            BIGINT          NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `name`          VARCHAR(100)    NOT NULL COMMENT 'Webhook 名称',
+    `url`           VARCHAR(500)    NOT NULL COMMENT '回调URL',
+    `events`        VARCHAR(500)    NOT NULL COMMENT '订阅事件类型列表（JSON数组）',
+    `secret`        VARCHAR(255)    NOT NULL COMMENT '签名密钥',
+    `status`        VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE' COMMENT '状态: ACTIVE/DISABLED',
+    `retry_count`   INT             NOT NULL DEFAULT 3 COMMENT '最大重试次数',
+    `created_by`    BIGINT          DEFAULT NULL COMMENT '创建人用户ID',
+    `created_at`    DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`    DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    INDEX `idx_status` (`status`),
+    INDEX `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Webhook 订阅表';
+
+-- Webhook 事件投递日志表
+CREATE TABLE IF NOT EXISTS `webhook_event_logs` (
+    `id`            BIGINT          NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `webhook_id`    BIGINT          NOT NULL COMMENT 'Webhook 订阅ID',
+    `event_type`    VARCHAR(50)     NOT NULL COMMENT '事件类型',
+    `payload`       JSON            NOT NULL COMMENT '事件负载',
+    `status`        VARCHAR(20)     NOT NULL DEFAULT 'PENDING' COMMENT '投递状态: PENDING/SUCCESS/FAILED',
+    `attempt_count` INT             NOT NULL DEFAULT 0 COMMENT '已尝试次数',
+    `last_error`    VARCHAR(500)    DEFAULT NULL COMMENT '最后一次错误信息',
+    `next_retry_at` DATETIME        DEFAULT NULL COMMENT '下次重试时间',
+    `created_at`    DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at`    DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    INDEX `idx_webhook_id` (`webhook_id`),
+    INDEX `idx_status` (`status`),
+    INDEX `idx_next_retry_at` (`next_retry_at`),
+    INDEX `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Webhook 事件投递日志表';
+
+-- ============================================================
 -- 设备服务相关表
 -- ============================================================
 

@@ -21,6 +21,11 @@ public class GatewayRouteConfig {
                         .path("/api/v1/users/**")
                         .filters(f -> f.stripPrefix(1))
                         .uri("lb://zncloud-user-service"))
+                // 管理后台 API（AK/SK 密钥管理 + Webhook 管理）
+                .route("user-service-admin", r -> r
+                        .path("/api/v1/admin/**")
+                        .filters(f -> f.stripPrefix(1))
+                        .uri("lb://zncloud-user-service"))
                 // 设备服务
                 .route("device-service", r -> r
                         .path("/api/v1/devices/**")

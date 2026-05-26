@@ -24,11 +24,16 @@ jwt:
   secret: ${JWT_SECRET:ZnCloudSecretKey2024ForJwtTokenGenerationMustBe256BitsLong}
   expiration: 86400000  # 24小时，单位毫秒
 
+# AK/SK 密钥加密配置
+access-key:
+  encrypt-secret: ${AK_ENCRYPT_SECRET:DefaultEncryptKeyForAKSK2024}
+  encrypt-salt: ${AK_ENCRYPT_SALT:deadbeef}
+
 # MyBatis-Plus 配置
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
-  type-aliases-package: com.zncloud.user.model.entity
-  type-enums-package: com.zncloud.user.model.enums
+  type-aliases-package: com.zncloud.user.model.entity,com.zncloud.user.admin.entity
+  type-enums-package: com.zncloud.user.model.enums,com.zncloud.user.admin.enums
   global-config:
     db-config:
       id-type: auto
