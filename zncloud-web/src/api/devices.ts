@@ -4,7 +4,7 @@ export interface Device {
   id: number
   name: string
   deviceCode: string
-  status: 'ONLINE' | 'OFFLINE' | 'MAINTENANCE' | 'DISABLED'
+  status: 'ONLINE' | 'OFFLINE' | 'MAINTENANCE' | 'DISABLED' | 'REGISTERED' | 'IN_USE' | 'PENDING_ONLINE'
   cafeId?: number
   cafeName?: string
   configLevel?: string
@@ -17,6 +17,7 @@ export interface Device {
   lastHeartbeat?: string
   createdAt?: string
   updatedAt?: string
+  macAddress?: string
 }
 
 export interface DeviceListParams {
@@ -33,6 +34,14 @@ export interface PageResult<T> {
   totalElements: number
   page: number
   size: number
+}
+
+export interface PendingCommand {
+  id: number
+  deviceId: string
+  type: 'REBOOT' | 'POWEROFF'
+  status: 'PENDING' | 'ACKNOWLEDGED' | 'COMPLETED' | 'FAILED'
+  createdAt: string
 }
 
 /** 获取设备列表 */
@@ -62,4 +71,29 @@ export async function updateDevice(id: number, data: Partial<Device>): Promise<D
 /** 批量操作设备（启用/禁用/删除） */
 export async function batchUpdateDevices(ids: number[], action: string): Promise<void> {
   await client.post('/devices/batch', { ids, action })
+}
+
+// ========== 远程电源管理 API ==========
+
+/** 唤醒设备（发送 WoL 魔术包） */
+export async function wakeDevice(deviceId: string): Promise<void> {
+  await client.post(`/devices/${deviceId}/wake`)
+}
+
+/** 重启设备 */
+export async function rebootDevice(deviceId: string): Promise<PendingCommand> {
+  const res = await client.post<PendingCommand>(`/devices/${deviceId}/reboot`)
+  return res.data
+}
+
+/** 关机设备 */
+export async function poweroffDevice(deviceId: string): Promise<PendingCommand> {
+  const res = await client.post<PendingCommand>(`/devices/${deviceId}/poweroff`)
+  return res.data
+}
+
+/** 获取设备电源状态 */
+export async function getPowerStatus(deviceId: string): Promise<string> {
+  const res = await client.get<string>(`/devices/${deviceId}/power-status`)
+  return res.data
 }

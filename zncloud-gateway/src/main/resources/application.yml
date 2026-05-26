@@ -36,6 +36,9 @@ jwt:
     - /api/v1/auth/**
     - /api/v1/devices/register
     - /api/v1/devices/heartbeat
+    - /api/v1/devices/*/pending-command
+    - /api/v1/devices/pending-command/ack
+    - /api/v1/devices/*/power-status
 
 # AK/SK 认证配置
 aks:
@@ -47,6 +50,9 @@ aks:
       - /api/v1/auth/**
       - /api/v1/devices/register
       - /api/v1/devices/heartbeat
+      - /api/v1/devices/*/pending-command
+      - /api/v1/devices/pending-command/ack
+      - /api/v1/devices/*/power-status
 
 # Spring Boot Actuator
 management:

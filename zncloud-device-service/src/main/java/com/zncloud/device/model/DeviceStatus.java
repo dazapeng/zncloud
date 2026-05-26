@@ -8,7 +8,8 @@ public enum DeviceStatus {
     REGISTERED("REGISTERED", "已注册"),
     ONLINE("ONLINE", "在线"),
     IN_USE("IN_USE", "使用中"),
-    OFFLINE("OFFLINE", "离线");
+    OFFLINE("OFFLINE", "离线"),
+    PENDING_ONLINE("PENDING_ONLINE", "唤醒中");
 
     @EnumValue
     private final String value;

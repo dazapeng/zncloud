@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
-import { getDevices, batchUpdateDevices } from '../../api/devices'
+import { getDevices, batchUpdateDevices, wakeDevice, rebootDevice, poweroffDevice } from '../../api/devices'
 import type { Device, DeviceListParams } from '../../api/devices'
 
 const statusOptions = [
   { value: '', label: '全部状态' },
   { value: 'ONLINE', label: '在线' },
   { value: 'OFFLINE', label: '离线' },
+  { value: 'PENDING_ONLINE', label: '唤醒中' },
+  { value: 'REGISTERED', label: '已注册' },
+  { value: 'IN_USE', label: '使用中' },
   { value: 'MAINTENANCE', label: '维护中' },
   { value: 'DISABLED', label: '已禁用' },
 ]
@@ -13,6 +16,9 @@ const statusOptions = [
 const statusLabels: Record<string, string> = {
   ONLINE: '在线',
   OFFLINE: '离线',
+  PENDING_ONLINE: '唤醒中',
+  REGISTERED: '已注册',
+  IN_USE: '使用中',
   MAINTENANCE: '维护中',
   DISABLED: '已禁用',
 }
@@ -20,8 +26,19 @@ const statusLabels: Record<string, string> = {
 const statusBadgeColors: Record<string, string> = {
   ONLINE: 'bg-green-100 text-green-700',
   OFFLINE: 'bg-gray-100 text-gray-500',
+  PENDING_ONLINE: 'bg-blue-100 text-blue-700',
+  REGISTERED: 'bg-purple-100 text-purple-700',
+  IN_USE: 'bg-yellow-100 text-yellow-700',
   MAINTENANCE: 'bg-yellow-100 text-yellow-700',
   DISABLED: 'bg-red-100 text-red-700',
+}
+
+interface ConfirmDialog {
+  show: boolean
+  title: string
+  message: string
+  action: 'wake' | 'reboot' | 'poweroff'
+  deviceId: string
 }
 
 export default function DeviceManagePage() {
@@ -33,6 +50,14 @@ export default function DeviceManagePage() {
   const [totalElements, setTotalElements] = useState(0)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [batchLoading, setBatchLoading] = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog>({
+    show: false,
+    title: '',
+    message: '',
+    action: 'wake',
+    deviceId: '',
+  })
+  const [powerLoading, setPowerLoading] = useState<Record<string, boolean>>({})
 
   const fetchDevices = async () => {
     setLoading(true)
@@ -86,9 +111,84 @@ export default function DeviceManagePage() {
     }
   }
 
+  // ========== 电源管理 ==========
+
+  const showConfirmDialog = (deviceId: string, action: 'wake' | 'reboot' | 'poweroff') => {
+    const titles: Record<string, string> = {
+      wake: '确认唤醒',
+      reboot: '确认重启',
+      poweroff: '确认关机',
+    }
+    const messages: Record<string, string> = {
+      wake: '确定要向此设备发送唤醒信号（WoL 魔术包）吗？设备必须处于离线状态。',
+      reboot: '确定要远程重启此设备吗？设备当前正在运行的任务将被中断。',
+      poweroff: '确定要远程关闭此设备吗？设备将立即关机。',
+    }
+    setConfirmDialog({
+      show: true,
+      title: titles[action],
+      message: messages[action],
+      action,
+      deviceId,
+    })
+  }
+
+  const handlePowerAction = async () => {
+    const { action, deviceId } = confirmDialog
+    setConfirmDialog((prev) => ({ ...prev, show: false }))
+    setPowerLoading((prev) => ({ ...prev, [deviceId]: true }))
+
+    try {
+      switch (action) {
+        case 'wake':
+          await wakeDevice(deviceId)
+          break
+        case 'reboot':
+          await rebootDevice(deviceId)
+          break
+        case 'poweroff':
+          await poweroffDevice(deviceId)
+          break
+      }
+      fetchDevices()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : `${action === 'wake' ? '唤醒' : action === 'reboot' ? '重启' : '关机'}操作失败`)
+    } finally {
+      setPowerLoading((prev) => ({ ...prev, [deviceId]: false }))
+    }
+  }
+
+  const canWake = (status: string) => status === 'OFFLINE' || status === 'REGISTERED'
+  const canReboot = (status: string) => status === 'ONLINE' || status === 'IN_USE'
+  const canPoweroff = (status: string) => status === 'ONLINE' || status === 'IN_USE'
+
   return (
     <div>
       <h1 className="mb-4 text-xl font-bold text-gray-900">设备管理</h1>
+
+      {/* 确认对话框 */}
+      {confirmDialog.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="mb-2 text-lg font-semibold text-gray-900">{confirmDialog.title}</h3>
+            <p className="mb-6 text-sm text-gray-600">{confirmDialog.message}</p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="btn-secondary text-sm !px-4 !py-2"
+                onClick={() => setConfirmDialog((prev) => ({ ...prev, show: false }))}
+              >
+                取消
+              </button>
+              <button
+                className="rounded bg-primary-600 px-4 py-2 text-sm text-white hover:bg-primary-700"
+                onClick={handlePowerAction}
+              >
+                确认
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 筛选栏 */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -186,18 +286,21 @@ export default function DeviceManagePage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   心跳时间
                 </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  电源操作
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
+                  <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
                     加载中...
                   </td>
                 </tr>
               ) : devices.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
+                  <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
                     暂无设备数据
                   </td>
                 </tr>
@@ -228,6 +331,44 @@ export default function DeviceManagePage() {
                       {device.lastHeartbeat
                         ? new Date(device.lastHeartbeat).toLocaleString('zh-CN')
                         : '-'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        {/* 唤醒按钮 — 仅设备离线或已注册时显示 */}
+                        {canWake(device.status) && (
+                          <button
+                            className="rounded bg-blue-50 px-2 py-1 text-xs text-blue-600 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={powerLoading[device.id]}
+                            onClick={() => showConfirmDialog(String(device.id), 'wake')}
+                          >
+                            {powerLoading[device.id] ? '...' : '唤醒'}
+                          </button>
+                        )}
+                        {/* 重启按钮 — 仅设备在线或使用中时显示 */}
+                        {canReboot(device.status) && (
+                          <button
+                            className="rounded bg-yellow-50 px-2 py-1 text-xs text-yellow-600 hover:bg-yellow-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={powerLoading[device.id]}
+                            onClick={() => showConfirmDialog(String(device.id), 'reboot')}
+                          >
+                            {powerLoading[device.id] ? '...' : '重启'}
+                          </button>
+                        )}
+                        {/* 关机按钮 — 仅设备在线或使用中时显示 */}
+                        {canPoweroff(device.status) && (
+                          <button
+                            className="rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={powerLoading[device.id]}
+                            onClick={() => showConfirmDialog(String(device.id), 'poweroff')}
+                          >
+                            {powerLoading[device.id] ? '...' : '关机'}
+                          </button>
+                        )}
+                        {/* 无可用操作时显示占位 */}
+                        {!canWake(device.status) && !canReboot(device.status) && !canPoweroff(device.status) && (
+                          <span className="text-xs text-gray-300">-</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
