@@ -1,6 +1,7 @@
 package com.zncloud.device.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.zncloud.device.model.Cafe;
 import com.zncloud.device.model.Device;
 import com.zncloud.device.model.DeviceStatus;
 
@@ -56,4 +57,14 @@ public interface DeviceService {
      * 获取设备列表（按ID集合）
      */
     List<Device> getDevicesByIds(List<String> ids);
+
+    /**
+     * 逻辑删除设备
+     */
+    void deleteDevice(String id);
+
+    /**
+     * 根据网吧ID获取网吧信息
+     */
+    Cafe extractCafeInfo(String cafeId);
 }

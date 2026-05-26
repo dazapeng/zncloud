@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zncloud.device.model.Cafe;
 import com.zncloud.device.model.Device;
 import com.zncloud.device.model.DeviceStatus;
+import com.zncloud.device.repository.CafeMapper;
 import com.zncloud.device.repository.DeviceMapper;
 import com.zncloud.device.service.DeviceService;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import java.util.List;
 public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> implements DeviceService {
 
     private final DeviceMapper deviceMapper;
+    private final CafeMapper cafeMapper;
 
     @Value("${device.heartbeat.timeout:90}")
     private long heartbeatTimeout;
@@ -157,7 +160,21 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
         Page<Device> page = new Page<>(pageNum != null ? pageNum : 1,
                 pageSize != null ? pageSize : 20);
-        return deviceMapper.selectPage(page, wrapper);
+        IPage<Device> result = deviceMapper.selectPage(page, wrapper);
+
+        // 为每个设备补充网吧信息（省份/城市/网吧名称）
+        for (Device device : result.getRecords()) {
+            if (StringUtils.hasText(device.getCafeId())) {
+                Cafe cafe = cafeMapper.selectById(device.getCafeId());
+                if (cafe != null) {
+                    device.setProvince(cafe.getProvince());
+                    device.setCity(cafe.getCity());
+                    device.setCafeName(cafe.getName());
+                }
+            }
+        }
+
+        return result;
     }
 
     @Override
@@ -188,6 +205,25 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @Override
     public List<Device> getDevicesByIds(List<String> ids) {
         return deviceMapper.selectBatchIds(ids);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteDevice(String id) {
+        Device device = deviceMapper.selectById(id);
+        if (device == null) {
+            throw new RuntimeException("设备不存在: " + id);
+        }
+        deviceMapper.deleteById(id);
+        log.info("设备逻辑删除成功, ID: {}", id);
+    }
+
+    @Override
+    public Cafe extractCafeInfo(String cafeId) {
+        if (!StringUtils.hasText(cafeId)) {
+            return null;
+        }
+        return cafeMapper.selectById(cafeId);
     }
 
     /**

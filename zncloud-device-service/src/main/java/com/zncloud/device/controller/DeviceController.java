@@ -97,6 +97,19 @@ public class DeviceController {
     }
 
     /**
+     * 逻辑删除设备
+     */
+    @DeleteMapping("/{id}")
+    public ApiResult<Void> deleteDevice(@PathVariable("id") String id) {
+        try {
+            deviceService.deleteDevice(id);
+            return ApiResult.success();
+        } catch (RuntimeException e) {
+            return ApiResult.notFound(e.getMessage());
+        }
+    }
+
+    /**
      * 设备心跳
      */
     @PostMapping("/heartbeat")

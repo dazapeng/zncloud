@@ -32,6 +32,15 @@ public class Device {
     /** 操作系统版本 */
     private String osVersion;
 
+    /** 省份（从所属网吧填充） */
+    private String province;
+
+    /** 城市（从所属网吧填充） */
+    private String city;
+
+    /** 网吧名称（从所属网吧填充） */
+    private String cafeName;
+
     /** MAC地址(唯一标识) */
     private String macAddress;
 
