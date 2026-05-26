@@ -190,3 +190,22 @@ CREATE TABLE IF NOT EXISTS `device_offline_log` (
     INDEX `idx_offline_at` (`offline_at`),
     INDEX `idx_handled` (`handled`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='设备离线日志表';
+
+-- ============================================================
+-- 电源管理相关表
+-- ============================================================
+
+-- 待处理电源命令表
+CREATE TABLE IF NOT EXISTS `pending_command` (
+    `id`                BIGINT          NOT NULL AUTO_INCREMENT COMMENT '命令ID',
+    `device_id`         VARCHAR(36)     NOT NULL COMMENT '设备ID',
+    `type`              VARCHAR(30)     NOT NULL COMMENT '命令类型: REBOOT/POWEROFF',
+    `status`            VARCHAR(30)     NOT NULL DEFAULT 'PENDING' COMMENT '状态: PENDING/ACKNOWLEDGED/COMPLETED/FAILED',
+    `created_at`        DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `acknowledged_at`   DATETIME        DEFAULT NULL COMMENT '确认时间',
+    `result_message`    VARCHAR(500)    DEFAULT NULL COMMENT '执行结果消息',
+    PRIMARY KEY (`id`),
+    INDEX `idx_device_id` (`device_id`),
+    INDEX `idx_status` (`status`),
+    INDEX `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='待处理电源命令表';

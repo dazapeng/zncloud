@@ -13,6 +13,8 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
     public void insertFill(MetaObject metaObject) {
         this.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
         this.strictInsertFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+        this.strictInsertFill(metaObject, "createdAt", LocalDateTime.class, LocalDateTime.now());
+        this.strictInsertFill(metaObject, "status", String.class, "PENDING");
     }
 
     @Override

@@ -253,6 +253,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     /**
      * 状态机校验
      * REGISTERED → ONLINE → IN_USE → ONLINE → OFFLINE
+     * OFFLINE → PENDING_ONLINE → ONLINE
+     * PENDING_ONLINE → OFFLINE
+     * REGISTERED → (直接跳转)
      */
     private void validateStateTransition(DeviceStatus current, DeviceStatus target) {
         if (current == target) {
@@ -263,7 +266,10 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             case REGISTERED -> target == DeviceStatus.ONLINE;
             case ONLINE -> target == DeviceStatus.IN_USE || target == DeviceStatus.OFFLINE;
             case IN_USE -> target == DeviceStatus.ONLINE || target == DeviceStatus.OFFLINE;
-            case OFFLINE -> target == DeviceStatus.ONLINE || target == DeviceStatus.REGISTERED;
+            case OFFLINE -> target == DeviceStatus.ONLINE || target == DeviceStatus.REGISTERED
+                    || target == DeviceStatus.PENDING_ONLINE;
+            case PENDING_ONLINE -> target == DeviceStatus.ONLINE || target == DeviceStatus.OFFLINE
+                    || target == DeviceStatus.REGISTERED;
         };
 
         if (!valid) {
