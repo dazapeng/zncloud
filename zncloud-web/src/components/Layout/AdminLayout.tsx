@@ -7,6 +7,7 @@ const adminMenuItems = [
   { path: '/admin/devices', label: '设备管理', icon: '🖥️' },
   { path: '/admin/users', label: '用户管理', icon: '👥' },
   { path: '/admin/finance', label: '财务管理', icon: '💰' },
+  { path: '/admin/operations', label: '运营管理', icon: '📈' },
 ]
 
 export function AdminLayout() {

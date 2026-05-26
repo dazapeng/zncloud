@@ -11,6 +11,7 @@ import DashboardPage from './pages/admin/DashboardPage'
 import DeviceManagePage from './pages/admin/DeviceManagePage'
 import UserManagePage from './pages/admin/UserManagePage'
 import CafeFinancePage from './pages/admin/CafeFinancePage'
+import OperationsPage from './pages/admin/OperationsPage'
 
 export default function App() {
   return (
@@ -89,6 +90,14 @@ export default function App() {
           element={
             <ProtectedRoute roles={['CAFE_ADMIN', 'OPERATOR', 'SUPER_ADMIN']}>
               <CafeFinancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="operations"
+          element={
+            <ProtectedRoute roles={['OPERATOR', 'SUPER_ADMIN']}>
+              <OperationsPage />
             </ProtectedRoute>
           }
         />

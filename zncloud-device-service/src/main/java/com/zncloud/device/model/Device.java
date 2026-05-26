@@ -38,6 +38,12 @@ public class Device {
     /** 城市（从所属网吧填充） */
     private String city;
 
+    /** 区/县 */
+    private String district;
+
+    /** 运营商 */
+    private Isp isp;
+
     /** 网吧名称（从所属网吧填充） */
     private String cafeName;
 
