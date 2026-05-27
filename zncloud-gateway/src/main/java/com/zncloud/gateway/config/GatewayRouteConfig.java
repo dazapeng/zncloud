@@ -31,6 +31,11 @@ public class GatewayRouteConfig {
                         .path("/api/v1/devices/**")
                         .filters(f -> f.stripPrefix(1))
                         .uri("lb://zncloud-device-service"))
+                // 会话服务
+                .route("session-service", r -> r
+                        .path("/api/v1/sessions/**")
+                        .filters(f -> f.stripPrefix(1))
+                        .uri("lb://zncloud-session-service"))
                 .build();
     }
 }

@@ -3,9 +3,11 @@ package com.zncloud.session;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(scanBasePackages = {"com.zncloud"})
 @EnableDiscoveryClient
+@EnableScheduling
 public class SessionServiceApplication {
 
     public static void main(String[] args) {
