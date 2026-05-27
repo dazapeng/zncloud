@@ -96,7 +96,7 @@ export default function App() {
         <Route
           path="operations"
           element={
-            <ProtectedRoute roles={['OPERATOR', 'SUPER_ADMIN']}>
+            <ProtectedRoute roles={['CAFE_ADMIN', 'OPERATOR', 'SUPER_ADMIN']}>
               <OperationsPage />
             </ProtectedRoute>
           }
