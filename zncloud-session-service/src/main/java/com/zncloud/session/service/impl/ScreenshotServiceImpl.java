@@ -32,14 +32,17 @@ public class ScreenshotServiceImpl implements ScreenshotService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public SessionScreenshot uploadScreenshot(String sessionId, byte[] imageData, String fileName, int fileSize) {
-        // Enforce retention: keep last 100 frames per session
-        LambdaQueryWrapper<SessionScreenshot> countWrapper = new LambdaQueryWrapper<>();
-        countWrapper.eq(SessionScreenshot::getSessionId, sessionId);
-        long count = screenshotMapper.selectCount(countWrapper);
-        if (count >= 100) {
-            // Delete oldest screenshot
+        // Enforce retention: keep last 100 non-flagged frames per session
+        // Flagged screenshots are preserved separately — they are NOT subject to the 100-frame cap
+        LambdaQueryWrapper<SessionScreenshot> nonFlaggedCountWrapper = new LambdaQueryWrapper<>();
+        nonFlaggedCountWrapper.eq(SessionScreenshot::getSessionId, sessionId)
+                .eq(SessionScreenshot::getFlagged, false);
+        long nonFlaggedCount = screenshotMapper.selectCount(nonFlaggedCountWrapper);
+        if (nonFlaggedCount >= 100) {
+            // Delete oldest non-flagged screenshot only
             LambdaQueryWrapper<SessionScreenshot> oldestWrapper = new LambdaQueryWrapper<>();
             oldestWrapper.eq(SessionScreenshot::getSessionId, sessionId)
+                    .eq(SessionScreenshot::getFlagged, false)
                     .orderByAsc(SessionScreenshot::getCreatedAt)
                     .last("LIMIT 1");
             SessionScreenshot oldest = screenshotMapper.selectOne(oldestWrapper);
