@@ -38,3 +38,7 @@ docker-data/
 # OS
 .DS_Store
 Thumbs.db
+
+# Go
+zncloud-client/build/
+*.exe
